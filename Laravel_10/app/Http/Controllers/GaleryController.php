@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Galery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class GaleryController extends Controller
 {
@@ -12,7 +13,9 @@ class GaleryController extends Controller
      */
     public function index()
     {
-        return view('Page.timeline');
+        $user = Auth::user();
+        $foto = Galery::where('id_user', $user->id)->latest()->get();
+        return view('Page.timeline', compact('foto'));
     }
 
     /**
@@ -28,15 +31,35 @@ class GaleryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = Auth::user();
+
+        $request->validate([
+            'foto' => 'required|image'
+        ]);
+
+        $nfile = $user->id . date('YmdHis') . '.' . $request->foto->getClientOriginalExtension();
+        $request->foto->move(public_path('image'), $nfile);
+
+        $data = [
+            'judul' => $request->judul,
+            'deskripsi' => $request->deskripsi,
+            'id_user' => $user->id,
+            'foto' => $nfile,
+        ];
+
+        Galery::create($data);
+
+        return back();
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Galery $galery)
+    public function show($id)
     {
-        //
+        Galery::where('id', $id)->delete();
+
+        return back();
     }
 
     /**
@@ -50,9 +73,37 @@ class GaleryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Galery $galery)
+    public function update(Request $request, $id)
     {
-        //
+        $user = Auth::user();
+        if (isset($request->foto)) {
+
+            $request->validate([
+                'foto' => 'required|image'
+            ]);
+
+            $nfile = $user->id . date('YmdHis') . '.' . $request->foto->getClientOriginalExtension();
+            $request->foto->move(public_path('image'), $nfile);
+
+            $data = [
+                'judul' => $request->judul,
+                'deskripsi' => $request->deskripsi,
+                'foto' => $nfile,
+            ];
+
+            Galery::where('id', $id)->update($data);
+
+            return back();
+        } else {
+            $data = [
+                'judul' => $request->judul,
+                'deskripsi' => $request->deskripsi,
+            ];
+
+            Galery::where('id', $id)->update($data);
+
+            return back();
+        }
     }
 
     /**
